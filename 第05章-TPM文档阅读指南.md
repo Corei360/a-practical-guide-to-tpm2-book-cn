@@ -76,7 +76,13 @@ TPM2.0通用的命令和命令响应相关的数据结构是在规范第一部�
 
 所有命令都使用这种三段式的描述。我们现在只看命令和响应列表。对于TPM2_Startup来说，这些列表分别是表5-1和表5-2。
 
-表5-1
+表5-1. TPM2_Startup命令
+|Type|Name|Description|
+|:---|:---|:----------|
+|TPMI_ST_COMMAND_TAG|Tag|TPM_ST_NO_SESSIONS|
+|UINT32|commandSize| |
+|TPM_CC|commandCode|TPM_CC_Startup {NV}|
+|TPM_SU|startupType|TPM_SU_CLEAR or TPM_SU_STATE|
 
 最左边的类型（Type）一列表示命令相关参数的数据类型。这些数据类型是在规范的第二部分定义的。名称（Name)这一列是自注释的，主要包含了进出TPM设备的参数名称。同时这也名称与第三部分的源码相对应。描述（Description）这一列简要描了这个域的功能及其特殊要求。TPM2_Startup有两个跟域相关的要求：tag域必须是TPM_ST_NO_SESSIONS，commandSize域必须是TPM_CC_Startup。“{NV}”是一个列表修饰符，它表示这个命令有可能会更新TPM内部的NVRAM。（列表修饰符在规范第三部分比较靠前的位置描述）
 
@@ -93,8 +99,12 @@ TPM2.0通用的命令和命令响应相关的数据结构是在规范第一部�
 
 这条线之后的域都是命令的参数区域。在这个例子中，startupType是这个区域中唯一的参数。通常情况下，这个区域包含了一些和具体命令相关的配置参数。这个区域内的其他线条修饰和列表修饰符分别在规范第三部分的“Table Decorations”和“Handle and Parameter Demaraction”中描述。当你阅读第三部分的时候会经常饮用这一部分的。
 
-表5-2
-
+表5-2. TPM2_Startup响应
+|Type|Name|Description|
+|:---|:---|:----------|
+|TPM_ST|Tag|见第6条|
+|UINT32|responseSize| |
+|UINT32|responseSize| |
 
 下面是这个命令响应各个域的详细解释：
 * tag：标示了这个命令响应是否有会话。因为TPM2_Startup从来不使用会话，所以这个值必须是TPM_ST_NO_SESSIONS。
@@ -105,7 +115,17 @@ TPM2.0通用的命令和命令响应相关的数据结构是在规范第一部�
 
 现在我们将了解比前一个复杂的多的命令TPM2_Create。这个命令用于创建TPM对象，比如密钥和其他数据对象。表5-3就是它的命令描述表。
 
-表5-3
+表5-3. TPM2_Create命令
+|Type|Name|Description|
+|:---|:---|:----------|
+|TPMI_ST_COMMAND_TAG|Tag|TPM_ST_SESSIONS|
+|UINT32|commandSize| |
+|TPM_CC|commandSize|TPM_CC_Create|
+|TPMI_DH_OBJECT|@parentHandle|handle of parent for new object, Auth Index: 1, Auth Role: USER|
+|TPM2B_SENSITIVE_CREATE|inSensitive|the sensitive data|
+|TPM2B_PUBLIC|inPublic|the public template|
+|TPM2B_DATA|outsideInfo|data that will be included in the creation data for this object to provide permanment, verifiable linkage between this object and some object owner data|
+|TPML_PCR_SELECTION|creationPCR|PCR that will be used in creation data|
 
 下面是这个命令各个域的详细解释：
 * tag：在这个例子中，它的值是TPM_ST_SESSIONS。它表示这个命令必须包含会话。另外列表中parentHandle前面的@符号也说明了这一点，同时也就意味着这个命令的授权会话与这个handle相关。后续会更详细地介绍。
@@ -136,7 +156,17 @@ Handle和命令参数区域的使用方式不同，handle不会用于计算cpHas
 
 表5-4是TPM2_Create命令的响应描述表。
 
-表5-4
+表5-4. TPM2_Create响应
+|Type|Name|Description|
+|:---|:---|:----------|
+|TPM_ST|Tag|见第6条|
+|UINT32|responseSize| |
+|TPM_RC|responseSize| |
+|TPM2B_PRIVATE|outPrivate|the private portion of the object|
+|TPM2B_PUBLIC|outPublic|the public portion of the created object|
+|TPM2B_CREATION_DATA|creationData|contains a TPMS_CREATION_DATA|
+|TPM2B_DIGEST|creationHash|digest of creationData using nameAlg of outPublic|
+|TPMT_TK_CREATION|creationTicket|ticket used by TPM2_CertifyCreation() to validate that the creation data was produced by the TPM|
 
 下面是这个命令相应的各个域的详细解释：
 * tag，responseSize和responseCode已经在之前的示例中说明了。当然不同的是，如果命令成功了，tag的值是TPM_RC_SESSIONS而不是TPM_ST_SESSIONS，它用于表示在命令响应的会话。实际上，抛开本例，总结一下一共有以下三种情况：
@@ -167,7 +197,11 @@ Handle和命令参数区域的使用方式不同，handle不会用于计算cpHas
 ##### 以TPM2B_开始的数据结构
 所有以“TPM2B_”开始的数据结构都是以字节为单位的buffer。每个这样的buffer都由size和array[size]构成。表5-5就是一个典型的结构。
 
-表5-5
+表5-5. TPM2B_DATA结构体的定义
+|Parameter|Type|Description|
+|:--------|:---|:----------|
+|size|UINT16|size in octets of the buffer field; may be 0|
+|buffer[size]{:sizeof(TPMT_HA)}|BYTE|the buffer area that contains the algorithm ID and the digest|
 
 与它相对应的C语言结构如下：
 ```
@@ -183,13 +217,26 @@ the digest */
 #### 包含联合的结构体
 一个联合（Union）通常包含在一个结构体中，在他之前有一个Union选择子。表5-6就是一个例子
 
-表5-6
+表5-6. TPMT_HA结构体的定义
+|Parameter|Type|Description|
+|:--------|:---|:----------|
+|hashAlg|+TPMI_ALG_HASH|selection of the hash contained in the digest that implies the size of the digest. NOTE The leading "+" on the type indicates that this structure should pass an indication to the unuarshaling function for TPMI_ALG_HASH so that TPM_ALG_NULL will be allowed if a use of a TPMT_HA allows TPM_ALG_NULL.|
+|[hashAlg] digest|TPMU_HA|the digest data|
+|buffer[size]{:sizeof(TPMT_HA)}|BYTE|the buffer area that contains the algorithm ID and the digest|
 
 这个结构体有两个元素：hashAlg，它用于选择digest这个Union中具体的数据。digest前面用中括号括起来的hashAlg也说明了它的功能。在表5-6中，hashAlg就是digest的选择子。
 
 表5-7描述了TPMU_HA这个联合的定义。
 
-表5-7
+表5-7. TPMU_HA联合的定义
+|Parameter|Type|Selector|Description|
+|:--------|:---|:-------|:----------|
+|sha1 [SHA1_DIGEST_SIZE]|BYTE|TPM_ALG_SHA1| |
+|sha256 [SHA256_DIGEST_SIZE]|BYTE|TPM_ALG_SHA256| |
+|sm3_256 [SM3_256_DIGEST_SIZE]|BYTE|TPM_ALG_SM3_256| |
+|sha384 [SHA384_DIGEST_SIZE]|BYTE|TPM_ALG_SHA384| |
+|sha512 [SHA1_DIGEST_SIZE]|BYTE|TPM_ALG_SHA512| |
+|NULL||TPM_ALG_NULL| |
 
 通常来说，在一个结构体中，当出现[A]B这样的形式时，A就是参数B的选择子。在表5-7中，如果hashAlg被设置成TPM_ALG_SHA1，那这个Union中实际的元素就是sha1[SHA1_DIEST_SIZE]。
 
