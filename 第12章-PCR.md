@@ -20,7 +20,20 @@ TPM将会把需要加进来的数据连接到旧的PCR值中。要被扩展到PC
 
 表12-1是 PC客户端规范为PCR分配的功能。
 
-表12-1
+表12-1. Example PCR Allocation
+|PCR Number|Allocation|
+|:---------|:---------|
+|0|BIOS|
+|1|BIOS configuration|
+|2|Option ROMs|
+|3|Option ROM configuration|
+|4|MBR (master boot record|
+|5|MBR configuration|
+|6|State transitions and wake events|
+|7|Platform manufacturer specific measurements|
+|8-15|Static operating system|
+|16|Debug|
+|23|Application support|
 
 测量过程的安全性取决于CRTM的安全性。CRTM作为第一个运行的软件，它是不能被测量或者验证的。CRTM就是所谓的信任根。平台制造商可以通过将CRTM存储于ROM中，让它变得不可修改来保护CRTM，如果不在ROM中也可以设置禁止升级来保护。但是因为有可能因为bug需要修改CRTM，另一种方法就是要更新的代码要附带签名，CRTM在更新自己之前先验证这个签名。
 
