@@ -311,7 +311,7 @@ rval = Tss2_Sys_GetTestResult_Prepare( sysContext );
 
 计算命令的HMAC还需要另外一个函数Tss2_Sys_GetCommandCode。这个函数会以CPU大小端的方式返回命令代码。在命令的后处理时也会用到这个函数。
 
-Tss2_Sys_GetDecryptParam和Tss2_Sys_SetDecryptParam用于解密会话，17章会详细介绍。现在我们需要知道的是，Tss2_Sys_GetDecryptParam会返回一个指向被加密数据其实位置的指针和参数的大小。这两个值将被用于Tss2_Sys_SetDecryptParam函数，这个函数用于向命令数据流中添加加密参数。
+Tss2_Sys_GetDecryptParam和Tss2_Sys_SetDecryptParam用于解密会话，17章会详细介绍。现在我们需要知道的是，Tss2_Sys_GetDecryptParam会返回一个指向被加密数据起始位置的指针和参数的大小。这两个值将被用于Tss2_Sys_SetDecryptParam函数，这个函数用于向命令数据流中添加加密参数。
 
 Tss2_Sys_SetCmdAuths函数用于设置命令的授权区域（也叫做授权会话），这将在第13章讨论会话和授权时详细介绍。
 
@@ -362,64 +362,74 @@ rval = Tss2_Sys_GetTestResult_Complete( sysContext, &outData, &testResult );
 
 代码的注释很好的说明了三种调用：
 ```
-注： CheckPassed()是一个用于检查输入参数，也就是上一次调用的返回值，否是0的函数。如果返回值不是0，说明有错误，这个函数会打印错误信息，清理程序相关数据并退出。
+注： CheckPassed()是一个用于检查输入参数，也就是上一次调用的返回值是否是0的函数。如果返回值不是0，说明有错误，这个函数会打印错误信息，清理程序相关数据并退出。
 ```
 
 ```
 void TestGetTestResult()
 {
-UINT32 rval;
-TPM2B_MAX_BUFFER outData;
-TPM_RC testResult;
-TSS2_SYS_CONTEXT *systemContext;
-printf( "\nGET TEST RESULT TESTS:\n" );
-// Initialize the system context structure.
-systemContext = InitSysContext( 2000, resMgrTctiContext, &abiVersion );
-if( systemContext == 0 )
-{
-Handle failure, cleanup, and exit.
-InitSysContextFailure();
-}
-test the one-call apI.
-//
-// First test the one-call interface.
-//
-rval = Tss2_Sys_GetTestResult( systemContext, 0, &outData, &testResult,
-0 );
-CheckPassed(rval);
-test the synchronous, multi-call apIs.
-//
-// Now test the synchronous, non-one-call APIs.
-//
-rval = Tss2_Sys_GetTestResult_Prepare( systemContext );
-CheckPassed(rval);
-// Execute the command synchronously.
-rval = Tss2_Sys_Execute( systemContext );
-CheckPassed(rval);
-// Get the command results
-rval = Tss2_Sys_GetTestResult_Complete( systemContext, &outData,
-&testResult );
-CheckPassed(rval);
-test the asynchronous, multi-call apIs.
-//
-// Now test the asynchronous, non-one-call interface.
-//
-rval = Tss2_Sys_GetTestResult_Prepare( systemContext );
-CheckPassed(rval);Chapter 7 ■ tpM Software StaCk
-93
-// Execute the command asynchronously.
-rval = Tss2_Sys_ExecuteAsync( systemContext );
-CheckPassed(rval);
-// Get the command response. Wait a maximum of 20ms
-// for response.
-rval = Tss2_Sys_ExecuteFinish( systemContext, 20 );
-CheckPassed(rval);
-// Get the command results
-rval = Tss2_Sys_GetTestResult_Complete( systemContext, &outData,
-&testResult );
-CheckPassed(rval);
-// Tear down the system context.
-TeardownSysContext( systemContext );
+  UINT32 rval;
+  TPM2B_MAX_BUFFER outData;
+  TPM_RC testResult;
+  TSS2_SYS_CONTEXT *systemContext;
+
+  printf( "\nGET TEST RESULT TESTS:\n" );
+  // Initialize the system context structure.
+  systemContext = InitSysContext( 2000, resMgrTctiContext, &abiVersion );
+  if( systemContext == 0 )
+  {
+    Handle failure, cleanup, and exit.
+    InitSysContextFailure();
+  }
+```
+  test the one-call API.
+```
+  //
+  // First test the one-call interface.
+  //
+  rval = Tss2_Sys_GetTestResult( systemContext, 0, &outData, &testResult,
+          0 );
+  CheckPassed(rval);
+```
+  test the synchronous, multi-call APIs.
+```
+  //
+  // Now test the synchronous, non-one-call APIs.
+  //
+  rval = Tss2_Sys_GetTestResult_Prepare( systemContext );
+  CheckPassed(rval);
+  // Execute the command synchronously.
+  rval = Tss2_Sys_Execute( systemContext );
+  CheckPassed(rval);
+
+  // Get the command results
+  rval = Tss2_Sys_GetTestResult_Complete( systemContext, &outData,
+          &testResult );
+  CheckPassed(rval);
+```
+  test the asynchronous, multi-call APIs.
+```
+  //
+  // Now test the asynchronous, non-one-call interface.
+  //
+  rval = Tss2_Sys_GetTestResult_Prepare( systemContext );
+  CheckPassed(rval);
+  // Execute the command asynchronously.
+  rval = Tss2_Sys_ExecuteAsync( systemContext );
+  CheckPassed(rval);
+
+  // Get the command response. Wait a maximum of 20ms
+  // for response.
+  rval = Tss2_Sys_ExecuteFinish( systemContext, 20 );
+  CheckPassed(rval);
+
+  // Get the command results
+  rval = Tss2_Sys_GetTestResult_Complete( systemContext, &outData,
+          &testResult );
+  CheckPassed(rval);
+
+  // Tear down the system context.
+  TeardownSysContext( systemContext );
 }
 ```
 
