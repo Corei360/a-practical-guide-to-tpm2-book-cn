@@ -76,7 +76,7 @@ PCR的一个常用功能是授权。一个TPM实体可以拥有一个如下的po
 2. 执行以下操作（与TPM1.2类似）
   * 使用TPM2_GetRandom的结果作为对称秘钥，秘钥在TPM之外使用。
   * 使用TPM2_Create命令创建一个TPM秘钥，将刚刚的对称秘钥作为输入的Secret信息，并选择第1步的policy授权。
-  * 或者
+  * 或者（new TPM 2.0 alternative）
   * 使用TPM2_Create，仅仅使用Policy授权，通过改变命令的配置信息，让TPM自己生成对称秘钥并密封到当前创建的对象中。
 
  如下的操作用于解封秘钥：
